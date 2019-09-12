@@ -67,6 +67,19 @@
       </div>
     </div>
 
+    <div class="gf-form-inline">
+      <div class="gf-form">
+        <label class="gf-form-label query-keyword width-7">GROUP BY</label>
+      </div>
+      <div class="gf-form" ng-repeat="segment in ctrl.groupSegments">
+        <metric-segment segment="segment" get-options="ctrl.getGroups(segment, $index)" on-change="ctrl.groupSegmentUpdated(segment, $index)"></metric-segment>
+      </div>
+
+      <div class="gf-form gf-form--grow">
+        <div class="gf-form-label gf-form-label--grow"></div>
+      </div>
+    </div>
+
   </div>
 
 </query-editor-row>

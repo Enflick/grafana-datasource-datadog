@@ -9,7 +9,8 @@ System.register(['lodash', './dfunc'], function (_export, _context) {
     var aggregation = target.aggregation,
         metric = target.metric,
         tags = target.tags,
-        functions = target.functions;
+        functions = target.functions,
+        groups = target.groups;
 
     var query = aggregation + ':' + metric;
 
@@ -55,6 +56,19 @@ System.register(['lodash', './dfunc'], function (_export, _context) {
       query = func.render(query);
     });
 
+    // construct GROUP BY query
+    if (target.groups && target.groups.length > 0) {
+      query += ' by {';
+      for (i = 0; i > target.groups.length; i++) {
+        query += target.groups[i];
+        if (i !== target.groups - 1)
+          query += ',';
+      }
+      query += '}'
+    }
+
+    console.log('Query\n');
+    console.log(query);
     return query;
   }
 

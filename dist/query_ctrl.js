@@ -96,6 +96,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             });
           }
 
+
           _this.target.tags = _this.target.tags || [];
           _this.tagSegments = _this.target.tags.map(uiSegmentSrv.newSegment);
           _this.fixTagSegments();
@@ -118,6 +119,10 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             });
           }
 
+          _this.target.groups = this.target.groups || [];
+          _this.groupSegments = _this.target.groups.map(uiSegmentSrv.newSegment);
+          _this.fixGroupSegments();
+
           return _this;
         }
 
@@ -129,6 +134,8 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
         }, {
           key: 'getMetrics',
           value: function getMetrics() {
+            console.log('In query_ctrl\n');
+            console.log(this.datasource);
             return this.datasource.metricFindQuery().then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
@@ -147,6 +154,20 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             var _this2 = this;
 
             return this.datasource.tagFindQuery().then(this.uiSegmentSrv.transformToSegments(true)).then(function (results) {
+              if (segment.type !== 'plus-button') {
+                var removeSegment = _this2.uiSegmentSrv.newFake(_this2.removeText);
+                results.unshift(removeSegment);
+              }
+
+              return results;
+            });
+          }
+        }, {
+          key: 'getGroups',
+          value: function getGroups(segment) {
+            var _this2 = this;
+
+            return this.datasource.groupFindQuery(this.target.metric).then(this.uiSegmentSrv.transformToSegments(true)).then(function (results) {
               if (segment.type !== 'plus-button') {
                 var removeSegment = _this2.uiSegmentSrv.newFake(_this2.removeText);
                 results.unshift(removeSegment);
@@ -185,6 +206,16 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
 
             if (!lastSegment || lastSegment.type !== 'plus-button') {
               this.tagSegments.push(this.uiSegmentSrv.newPlusButton());
+            }
+          }
+        }, {
+          key: 'fixGroupSegments',
+          value: function fixGroupSegments() {
+            var count = this.groupSegments.length;
+            var lastSegment = this.groupSegments[Math.max(count - 1, 0)];
+
+            if (!lastSegment || lastSegment.type !== 'plus-button') {
+              this.groupSegments.push(this.uiSegmentSrv.newPlusButton());
             }
           }
         }, {
@@ -238,6 +269,25 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
 
             this.tagSegments = _.map(this.target.tags, this.uiSegmentSrv.newSegment);
             this.fixTagSegments();
+
+            this.panelCtrl.refresh();
+          }
+        }, {
+          key: 'groupSegmentUpdated',
+          value: function groupSegmentUpdated(segment, index) {
+            if (segment.value === this.removeText) {
+              this.groupSegments.splice(index, 1);
+            }
+
+            var realSegments = _.filter(this.groupSegments, function (segment) {
+              return segment.value;
+            });
+            this.target.groups = realSegments.map(function (segment) {
+              return segment.value;
+            });
+
+            this.groupSegments = _.map(this.target.groups, this.uiSegmentSrv.newSegment);
+            this.fixGroupSegments();
 
             this.panelCtrl.refresh();
           }

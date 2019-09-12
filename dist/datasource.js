@@ -112,6 +112,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           this.backendSrv = backendSrv;
           this.templateSrv = templateSrv;
           this._cached_metrics = false;
+          this._cached_groups = false;
         }
 
         // Function to check Datasource health
@@ -152,6 +153,18 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             });
           }
         }, {
+          key: 'groupFindQuery',
+          value: function groupFindQuery(metric) {
+            return this.getGroupsFromCache(metric).then(function (groups) {
+              return _.map(groups, function (hosts, group) {
+                return {
+                  text: group,
+                  value: group
+                };
+              });
+            });
+          }
+        }, {
           key: 'metricFindQuery',
           value: function metricFindQuery(query) {
             var _this = this;
@@ -167,6 +180,8 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             if (this.fetching) {
               return this.fetching;
             }
+
+            
 
             var d = new Date();
             d.setDate(d.getDate() - 1);
@@ -219,12 +234,16 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
         }, {
           key: 'query',
           value: function query(options) {
+            
             var from = Math.floor(options.range.from.valueOf() / 1000);
             var to = Math.floor(options.range.to.valueOf() / 1000);
 
             var targets = options.targets.filter(function (t) {
               return !t.hide;
             });
+
+            console.log("In datasource.js, showing targets\n");
+            console.log(targets);
 
             if (targets.length <= 0) {
               return Promise.resolve({ data: [] });
@@ -253,6 +272,8 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             };
 
             return this.invokeDataDogApiRequest('/query', params).then(function (result) {
+              console.log('Results\n');
+              console.log(result);
               var dataResponse = _.map(result.series, function (series, i) {
                 var target = targets[i];
                 return {
@@ -262,7 +283,9 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
                   })
                 };
               });
-
+              
+              console.log('Data Response\n');
+              console.log(dataResponse);
               return { data: dataResponse };
             });
           }
@@ -349,6 +372,40 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             });
           }
         }, {
+          /*
+          Sample tag obj:
+          {"tags"
+            :[
+              "automation:terraform",
+              "autoscaling_group:eks",
+              "autoscaling_group:eks-admin",
+              "autoscalinggroupname:eks",
+              "autoscalinggroupname:eks-admin",
+              "aws_account:981322793757",
+              "k8s.io/cluster-autoscaler/enabled:true",
+              "kubernetes.io/cluster/textnow-eks-prod:owned",
+              "name:eks",
+              "name:eks-admin",
+              "region:us-east-1",
+              "service:k8s",
+              "team:backend"
+            ]
+          }
+          */
+          key: 'getGroupsHosts',
+          // metric is the host name
+          value: function getGroupsHosts(metric) {
+            console.log('In getGroupsHosts\n');
+            console.log(metric);
+            return this.invokeDataDogApiRequest('/tags/hosts/' + metric).then(function (result) {
+              if (result && result.tags) {
+                return result.tags;
+              } else {
+                return [];
+              }
+            });
+          }
+        }, {
           key: 'getTagsFromCache',
           value: function getTagsFromCache() {
             var _this2 = this;
@@ -364,6 +421,23 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             }
 
             return getTags;
+          }
+        }, {
+          key: 'getGroupsFromCache',
+          value: function getGroupsFromCache(metric) {
+            var _this2 = this;
+
+            var getGroups = void 0;
+            if (this._cached_groups && this._cached_groups.length) {
+              getGroups = Promise.resolve(this._cached_groups);
+            } else {
+              getGroups = this.getGroupsHosts(metric).then(function (groups) {
+                _this2._cached_groups = groups;
+                return groups;
+              });
+            }
+
+            return getGroups;
           }
         }, {
           key: 'getEventStream',
@@ -398,6 +472,11 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             // Set auth params
             params.api_key = this.api_key;
             params.application_key = this.application_key;
+            console.log('In invokeDataDogApiRequest\n');
+            console.log(this);
+
+            console.log('params\n');
+            console.log(params);
 
             return this.backendSrv.datasourceRequest({
               method: 'GET',
