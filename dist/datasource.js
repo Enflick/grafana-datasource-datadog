@@ -392,12 +392,21 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             ]
           }
           */
+
+          // https://app.datadoghq.com/metric/flat_tags_for_metric?metric=aws.autoscaling.group_total_instances&window=86400&limit=10000
           key: 'getGroupsHosts',
           // metric is the host name
           value: function getGroupsHosts(metric) {
             console.log('In getGroupsHosts\n');
             console.log(metric);
-            return this.invokeDataDogApiRequest('/tags/hosts/' + metric).then(function (result) {
+
+            let params = {};
+            
+            params.metric = "aws.autoscaling.group_total_instances";
+
+            return this.invokeDataDogApiRequest('/metric/tag_keys_for_metric', params).then(function (result) {
+              console.log('Inside getGroupHosts()\n');
+              console.log(result);
               if (result && result.tags) {
                 return result.tags;
               } else {
