@@ -165,54 +165,61 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             });
           }
         }, {
+          key: 'checkPageNumber',
+          value: function checkPageNumber(pageNumber) {
+            if (this._cached_metrics) {
+              var upperBoundNumber = this._cached_metrics.length / 100;
+              if (pageNumber >= upperBoundNumber) {
+                if (this._cached_metrics.length % 100 != 0)
+                  return upperBoundNumber;
+                else 
+                  return upperBoundNumber - 1;
+              }
+            }  
+            return pageNumber;
+          }
+        }, {
           key: 'metricFindQuery',
           value: function metricFindQuery(param) {
             var _this = this;
+            if (isNaN(param))
+              return Promise.resolve(this._cached_metrics);
             
-            if (isNaN(param)) {
-              if (this._cached_metrics) {
-                return Promise.resolve(this._cached_metrics);
-              }
-  
-              if (this.fetching) {
-                return this.fetching;
-              }
-              var d = new Date();
-              d.setDate(d.getDate() - 1);
-              var from = Math.floor(d.getTime() / 1000);
+            if (param === 'tag') {
+              return this.tagFindQuery();
+            }
+            console.log('Fetching metrics on another page\n');
+            var startingPageNumber = param >= 0 ? param : 0;
 
-              this.fetching = this.getMetrics(from).then(function (metrics) {
-                _this._cached_metrics = _.map(metrics, function (metric) {
-                  return {
-                    text: metric,
-                    value: metric
-                  };
-                });
+            if (this._cached_metrics) {
+              var tmpMetrics = this._cached_metrics.slice(startingPageNumber * 100, startingPageNumber * 100 + 100);
+              return Promise.resolve(tmpMetrics);
+            }
 
-                return _this._cached_metrics;
-              });
-              return this.fetching;
-            } else {
-              if (param === 'tag') {
-                return this.tagFindQuery();
-              }
-              console.log('Fetching metrics on another page\n');
-              var d = new Date();
-              d.setDate(d.getDate() - 1);
-              var from = Math.floor(d.getTime() / 1000);
-
-              this.fetching = this.getMetrics(from, param).then(function (metrics) {
-                _this._cached_metrics = _.map(metrics, function (metric) {
-                  return {
-                    text: metric,
-                    value: metric
-                  };
-                });
-
-                return _this._cached_metrics;
-              });
+            if (this.fetching) {
               return this.fetching;
             }
+            var d = new Date();
+            d.setDate(d.getDate() - 1);
+            var from = Math.floor(d.getTime() / 1000);
+
+            this.fetching = this.getMetrics(from).then(function (metrics) {
+              /*
+              _cached_metrics still has all the metrics.
+              For the first fetching, it will only return the first 100 items
+              For further fetchings in the future, it will directly fetch  from _cached_metrics without 
+              going into this promise.
+              */
+              _this._cached_metrics = _.map(metrics, function (metric) {
+                return {
+                  text: metric,
+                  value: metric
+                };
+              });
+              return _this._cached_metrics.slice(startingPageNumber * 100, startingPageNumber * 100 + 100);
+            });
+            return this.fetching;
+            
           }
         }, {
           key: 'getTagKeys',
@@ -361,7 +368,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           }
         }, {
           key: 'getMetrics',
-          value: function getMetrics(timeFrom, pageNumber) {
+          value: function getMetrics(timeFrom) {
             var params = {};
 
             if (timeFrom) {
@@ -369,14 +376,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             }
             return this.invokeDataDogApiRequest('/metrics', params).then(function (result) {
               if (result.metrics) {
-                var cachedMetrics = result.metrics;
-                var startingPageNumber = pageNumber >= 0 ? pageNumber : 0;
-                cachedMetrics = cachedMetrics.slice(startingPageNumber * 100, startingPageNumber * 100 + 100);
-                if(cachedMetrics.length > 100) {
-                  return cachedMetrics;
-                } else {
-                  return cachedMetrics;
-                }
+                return result.metrics;
               } else {
                 return [];
               }

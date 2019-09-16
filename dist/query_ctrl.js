@@ -135,26 +135,20 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
         }, {
           key: 'getMetrics',
           value: function getMetrics() {
-            console.log('In query_ctrl\n');
             console.log(this.metricsPageNumber);
             return this.datasource.metricFindQuery(this.metricsPageNumber).then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
-          key: 'getMetricsSet',
-          value: function getMetricsSet(op) {
-            console.log('getMetricsSet\n');
-            if (op === 1) {
-              console.log('Next Page\n');
+          key: 'modifyMetricsPageNumber',
+          value: function modifyMetricsPageNumber(op) {
+            if (op === 1) 
               this.metricsPageNumber += 1;
-              console.log('Metric page number: ' + this.metricsPageNumber + '\n ');
-            } else {
-              console.log('Prev Page\n');
-              if (this.metricsPageNumber > 0) {
+            else {
+              if (this.metricsPageNumber > 0) 
                 this.metricsPageNumber -= 1;
-              }
-              console.log('Metric page number: ' + this.metricsPageNumber + '\n ');
             }
-            // return this.datasource.metricFindQuery(this.metricsPageNumber).then(this.uiSegmentSrv.transformToSegments(true));
+            this.metricsPageNumber = this.datasource.checkPageNumber(this.metricsPageNumber);
+            console.log('Page number: ' + this.metricsPageNumber + '\n');
         }
       }, {
           key: 'getAggregations',

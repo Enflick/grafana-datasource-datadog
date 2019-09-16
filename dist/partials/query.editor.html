@@ -14,9 +14,10 @@
       <div class="gf-form">
         <label class="gf-form-label query-keyword width-7">METRIC</label>
         <metric-segment segment="ctrl.metricSegment" get-options="ctrl.getMetrics()" on-change="ctrl.metricChanged()"></metric-segment>
-        <button query-ctrl="ctrl" class="btn navbar-button gf-timepicker-nav-btn" ng-click="ctrl.getMetricsSet(0)">Previous Page</button>
-        <button query-ctrl="ctrl" class="btn navbar-button gf-timepicker-nav-btn" ng-click="ctrl.getMetricsSet(1)">Next Page</button>
-      </div>
+        <button query-ctrl="ctrl" class="btn navbar-button gf-timepicker-nav-btn" ng-click="ctrl.modifyMetricsPageNumber(0)">Previous Page</button>
+        <button query-ctrl="ctrl" class="btn navbar-button gf-timepicker-nav-btn" ng-click="ctrl.modifyMetricsPageNumber(1)">Next Page</button>
+        <!-- <metric-segment segment="ctrl.metricSegmentAll" get-options="ctrl.getMetrics()" on-change="ctrl.metricChanged()"></metric-segment>-->
+      </div> 
       <div class="gf-form">
         <label class="gf-form-label query-keyword width-7">POST</label>
         <metric-segment segment="ctrl.asSegment" get-options="ctrl.getAs()" on-change="ctrl.asChanged()"></metric-segment>
