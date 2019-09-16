@@ -404,7 +404,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             
             params.metric = "aws.autoscaling.group_total_instances";
 
-            return this.invokeDataDogApiRequest('/metric/tag_keys_for_metric', params).then(function (result) {
+            return this.invokeDataDogApiRequest('/tags', params).then(function (result) {
               console.log('Inside getGroupHosts()\n');
               console.log(result);
               if (result && result.tags) {
