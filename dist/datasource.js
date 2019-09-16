@@ -166,39 +166,53 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           }
         }, {
           key: 'metricFindQuery',
-          value: function metricFindQuery(query) {
+          value: function metricFindQuery(param) {
             var _this = this;
+            
+            if (isNaN(param)) {
+              if (this._cached_metrics) {
+                return Promise.resolve(this._cached_metrics);
+              }
+  
+              if (this.fetching) {
+                return this.fetching;
+              }
+              var d = new Date();
+              d.setDate(d.getDate() - 1);
+              var from = Math.floor(d.getTime() / 1000);
 
-            if (query === 'tag') {
-              return this.tagFindQuery();
-            }
+              this.fetching = this.getMetrics(from).then(function (metrics) {
+                _this._cached_metrics = _.map(metrics, function (metric) {
+                  return {
+                    text: metric,
+                    value: metric
+                  };
+                });
 
-            if (this._cached_metrics) {
-              return Promise.resolve(this._cached_metrics);
-            }
+                return _this._cached_metrics;
+              });
+              return this.fetching;
+            } else {
+              if (param === 'tag') {
+                return this.tagFindQuery();
+              }
+              console.log('Fetching metrics on another page\n');
+              var d = new Date();
+              d.setDate(d.getDate() - 1);
+              var from = Math.floor(d.getTime() / 1000);
 
-            if (this.fetching) {
+              this.fetching = this.getMetrics(from, param).then(function (metrics) {
+                _this._cached_metrics = _.map(metrics, function (metric) {
+                  return {
+                    text: metric,
+                    value: metric
+                  };
+                });
+
+                return _this._cached_metrics;
+              });
               return this.fetching;
             }
-
-            
-
-            var d = new Date();
-            d.setDate(d.getDate() - 1);
-            var from = Math.floor(d.getTime() / 1000);
-
-            this.fetching = this.getMetrics(from).then(function (metrics) {
-              _this._cached_metrics = _.map(metrics, function (metric) {
-                return {
-                  text: metric,
-                  value: metric
-                };
-              });
-
-              return _this._cached_metrics;
-            });
-
-            return this.fetching;
           }
         }, {
           key: 'getTagKeys',
@@ -347,16 +361,22 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           }
         }, {
           key: 'getMetrics',
-          value: function getMetrics(timeFrom) {
+          value: function getMetrics(timeFrom, pageNumber) {
             var params = {};
 
             if (timeFrom) {
               params.from = timeFrom;
             }
-
             return this.invokeDataDogApiRequest('/metrics', params).then(function (result) {
               if (result.metrics) {
-                return result.metrics;
+                var cachedMetrics = result.metrics;
+                var startingPageNumber = pageNumber >= 0 ? pageNumber : 0;
+                cachedMetrics = cachedMetrics.slice(startingPageNumber * 100, startingPageNumber * 100 + 100);
+                if(cachedMetrics.length > 100) {
+                  return cachedMetrics;
+                } else {
+                  return cachedMetrics;
+                }
               } else {
                 return [];
               }

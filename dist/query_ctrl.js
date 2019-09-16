@@ -3,7 +3,7 @@
 System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add_datadog_func', './query_builder'], function (_export, _context) {
   "use strict";
 
-  var _, dfunc, QueryCtrl, queryBuilder, _createClass, DataDogQueryCtrl;
+  var _, dfunc, QueryCtrl, queryBuilder, _createClass, DataDogQueryCtrl, metricsPageNumber;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -75,6 +75,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
           _this.removeText = '-- remove tag --';
           _this.uiSegmentSrv = uiSegmentSrv;
           _this.templateSrv = templateSrv;
+          _this.metricsPageNumber = 0;
 
           if (_this.target.aggregation) {
             _this.aggregationSegment = new uiSegmentSrv.newSegment(_this.target.aggregation);
@@ -135,10 +136,27 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
           key: 'getMetrics',
           value: function getMetrics() {
             console.log('In query_ctrl\n');
-            console.log(this.datasource);
-            return this.datasource.metricFindQuery().then(this.uiSegmentSrv.transformToSegments(true));
+            console.log(this.metricsPageNumber);
+            return this.datasource.metricFindQuery(this.metricsPageNumber).then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
+          key: 'getMetricsSet',
+          value: function getMetricsSet(op) {
+            console.log('getMetricsSet\n');
+            if (op === 1) {
+              console.log('Next Page\n');
+              this.metricsPageNumber += 1;
+              console.log('Metric page number: ' + this.metricsPageNumber + '\n ');
+            } else {
+              console.log('Prev Page\n');
+              if (this.metricsPageNumber > 0) {
+                this.metricsPageNumber -= 1;
+              }
+              console.log('Metric page number: ' + this.metricsPageNumber + '\n ');
+            }
+            // return this.datasource.metricFindQuery(this.metricsPageNumber).then(this.uiSegmentSrv.transformToSegments(true));
+        }
+      }, {
           key: 'getAggregations',
           value: function getAggregations() {
             return Promise.resolve([{ text: 'avg by', value: 'avg' }, { text: 'max by', value: 'max' }, { text: 'min by', value: 'min' }, { text: 'sub by', value: 'sum' }]);
