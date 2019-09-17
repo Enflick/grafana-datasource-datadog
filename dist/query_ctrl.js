@@ -76,6 +76,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
           _this.uiSegmentSrv = uiSegmentSrv;
           _this.templateSrv = templateSrv;
           _this.metricsPageNumber = 0;
+          _this.query = null;
 
           if (_this.target.aggregation) {
             _this.aggregationSegment = new uiSegmentSrv.newSegment(_this.target.aggregation);
@@ -96,7 +97,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
               custom: false
             });
           }
-
 
           _this.target.tags = _this.target.tags || [];
           _this.tagSegments = _this.target.tags.map(uiSegmentSrv.newSegment);
@@ -128,14 +128,27 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
         }
 
         _createClass(DataDogQueryCtrl, [{
+          key: 'getCollapsedText',
+          value: function getCollapsedText() {
+            console.log('getCollapsedText gets called!\n');
+            if (this.target.rawQuery) {
+              if (this.query && this.query === this.target.query) {
+                return this.query;
+              }
+              return queryBuilder.buildQuery(this.target);
+            } 
+          }
+        }, {
           key: 'toggleEditorMode',
           value: function toggleEditorMode() {
+            console.log('In toggleEditorMode\n');
             this.target.rawQuery = !this.target.rawQuery;
+            this.query = this.getCollapsedText();
+            console.log(this.query);
           }
         }, {
           key: 'getMetrics',
           value: function getMetrics() {
-            console.log(this.metricsPageNumber);
             return this.datasource.metricFindQuery(this.metricsPageNumber).then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
@@ -148,7 +161,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 this.metricsPageNumber -= 1;
             }
             this.metricsPageNumber = this.datasource.checkPageNumber(this.metricsPageNumber);
-            console.log('Page number: ' + this.metricsPageNumber + '\n');
         }
       }, {
           key: 'getAggregations',
@@ -302,15 +314,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             this.fixGroupSegments();
 
             this.panelCtrl.refresh();
-          }
-        }, {
-          key: 'getCollapsedText',
-          value: function getCollapsedText() {
-            if (this.target.rawQuery) {
-              return this.target.query;
-            } else {
-              return queryBuilder.buildQuery(this.target);
-            }
           }
         }]);
 

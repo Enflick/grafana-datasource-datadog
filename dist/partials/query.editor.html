@@ -1,7 +1,7 @@
 <query-editor-row query-ctrl="ctrl" has-text-edit-mode="true" can-collapse="true">
 
   <div class="gf-form" ng-if="ctrl.target.rawQuery">
-    <input type="text" class="gf-form-input" ng-model="ctrl.target.query" spellcheck="false" ng-blur="ctrl.refresh()"></input>
+    <input type="text" class="gf-form-input" ng-model="ctrl.query" spellcheck="false" ng-blur="ctrl.refresh()"></input>
   </div>
 
   <div ng-if="!ctrl.target.rawQuery">
@@ -14,9 +14,8 @@
       <div class="gf-form">
         <label class="gf-form-label query-keyword width-7">METRIC</label>
         <metric-segment segment="ctrl.metricSegment" get-options="ctrl.getMetrics()" on-change="ctrl.metricChanged()"></metric-segment>
-        <button query-ctrl="ctrl" class="btn navbar-button gf-timepicker-nav-btn" ng-click="ctrl.modifyMetricsPageNumber(0)">Previous Page</button>
-        <button query-ctrl="ctrl" class="btn navbar-button gf-timepicker-nav-btn" ng-click="ctrl.modifyMetricsPageNumber(1)">Next Page</button>
-        <!-- <metric-segment segment="ctrl.metricSegmentAll" get-options="ctrl.getMetrics()" on-change="ctrl.metricChanged()"></metric-segment>-->
+        <button query-ctrl="ctrl" class="btn navbar-button gf-timepicker-nav-btn" ng-click="ctrl.modifyMetricsPageNumber(0)">Previous 100</button>
+        <button query-ctrl="ctrl" class="btn navbar-button gf-timepicker-nav-btn" ng-click="ctrl.modifyMetricsPageNumber(1)">Next 100</button>
       </div> 
       <div class="gf-form">
         <label class="gf-form-label query-keyword width-7">POST</label>

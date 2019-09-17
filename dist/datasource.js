@@ -188,7 +188,6 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             if (param === 'tag') {
               return this.tagFindQuery();
             }
-            console.log('Fetching metrics on another page\n');
             var startingPageNumber = param >= 0 ? param : 0;
 
             if (this._cached_metrics) {
@@ -263,9 +262,6 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
               return !t.hide;
             });
 
-            console.log("In datasource.js, showing targets\n");
-            console.log(targets);
-
             if (targets.length <= 0) {
               return Promise.resolve({ data: [] });
             }
@@ -293,8 +289,6 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             };
 
             return this.invokeDataDogApiRequest('/query', params).then(function (result) {
-              console.log('Results\n');
-              console.log(result);
               var dataResponse = _.map(result.series, function (series, i) {
                 var target = targets[i];
                 return {
@@ -305,8 +299,6 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
                 };
               });
               
-              console.log('Data Response\n');
-              console.log(dataResponse);
               return { data: dataResponse };
             });
           }
@@ -417,16 +409,13 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           key: 'getGroupsHosts',
           // metric is the host name
           value: function getGroupsHosts(metric) {
-            console.log('In getGroupsHosts\n');
-            console.log(metric);
-
             let params = {};
             
             params.metric = "aws.autoscaling.group_total_instances";
 
             return this.invokeDataDogApiRequest('/tags', params).then(function (result) {
-              console.log('Inside getGroupHosts()\n');
-              console.log(result);
+              // console.log('Inside getGroupHosts()\n');
+              // console.log(result);
               if (result && result.tags) {
                 return result.tags;
               } else {
@@ -501,11 +490,6 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             // Set auth params
             params.api_key = this.api_key;
             params.application_key = this.application_key;
-            console.log('In invokeDataDogApiRequest\n');
-            console.log(this);
-
-            console.log('params\n');
-            console.log(params);
 
             return this.backendSrv.datasourceRequest({
               method: 'GET',
