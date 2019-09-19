@@ -168,6 +168,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
               return this.tagFindQuery();
             }
 
+
             if (this._cached_metrics) {
               return Promise.resolve(this._cached_metrics);
             }
@@ -176,9 +177,9 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
               return this.fetching;
             }
 
-            var from = this.getFrom();
+   
 
-            this.fetching = this.getMetrics(from).then(function (metrics) {
+            this.fetching = this.getMetrics().then(function (metrics) {
               _this._cached_metrics = _.map(metrics, function (metric) {
                 return {
                   text: metric,
@@ -205,18 +206,27 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
                 return this.fetching;
               }  
             }
-            
-            this.fetching = this.searchMetrics(keyword).then(function (metrics) {
+
+            // if no keyword provided, fetch the first 100 metrics directly from Datadog
+            if (!keyword || keyword.length < 1) {
+              this.fetching = this.getMetrics().then((metrics) => this.resolveMetrics(metrics));
+            } else {
               _this._cached_metricKeyword = keyword;
-              _this._cached_metrics = _.map(metrics, function (metric) {
-                return {
-                  text: metric,
-                  value: metric
-                }
-              });
-              return _this._cached_metrics;
-            });
+              this.fetching = this.searchMetrics(keyword).then((metrics) => this.resolveMetrics(metrics));
+            }
             return this.fetching;
+          }
+        }, {
+          key: 'resolveMetrics',
+          value: function resolveMetrics(metrics) {
+            var _this = this;
+            _this._cached_metrics = _.map(metrics, function (metric) {
+              return {
+                text: metric,
+                value: metric
+              }
+            });
+            return _this._cached_metrics;
           }
         }, {
           key: 'getTagKeys',
@@ -356,16 +366,13 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           }
         }, {
           key: 'getMetrics',
-          value: function getMetrics(timeFrom) {
+          value: function getMetrics() {
             var params = {};
-
-            if (timeFrom) {
-              params.from = timeFrom;
-            }
-
+            params.from = this.getFrom();
+    
             return this.invokeDataDogApiRequest('/metrics', params).then(function (result) {
               if (result.metrics) {
-                return result.metrics;
+                return result.metrics.slice(0, 100);
               } else {
                 return [];
               }

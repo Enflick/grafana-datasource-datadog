@@ -14,11 +14,9 @@
       <div class="gf-form-inline">
         <label class="gf-form-label query-keyword width-7">METRIC</label>
         <div class="gf-form max-width-30">
-          <input type="text" class="gf-form-input" ng-model="ctrl.metricKeyword" spellcheck='false' placeholder="Type keyword here">
+          <input type="text" class="gf-form-input width-15" ng-model="ctrl.metricKeyword" spellcheck='false' placeholder="Type your keyword here">
         </div>
-        <div ng-if="ctrl.metricKeyword">
-          <metric-segment segment="ctrl.metricSegment" get-options="ctrl.getMetrics()" on-change="ctrl.metricChanged()"></metric-segment>
-        </div>
+        <metric-segment segment="ctrl.metricSegment" get-options="ctrl.getMetrics()" on-change="ctrl.metricChanged()"></metric-segment>
       </div>
       <div class="gf-form">
         <label class="gf-form-label query-keyword width-7">POST</label>

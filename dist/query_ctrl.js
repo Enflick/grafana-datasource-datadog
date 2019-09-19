@@ -300,9 +300,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
         }, {
           key: 'getMetrics',
           value: function getMetrics() {
-            if (this.metricKeyword && this.metricKeyword.length > 0) {
-              return this.datasource.initMetricsFetching(this.metricKeyword).then(this.uiSegmentSrv.transformToSegments(true));
-            }
+            return this.datasource.initMetricsFetching(this.metricKeyword).then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
           key: 'getAggregations',
