@@ -126,7 +126,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
               console.log(this.target);
               this.target.query = queryBuilder.buildQuery(this.target);
             } else {
-              this.reverseConstructSegs();
+              this.parseQuery();
             }
               
           }
@@ -148,39 +148,10 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             this.panelCtrl.refresh();
           }
         }, {
-          key: 'reverseConstructSegs',
-          value: function reverseConstructSegs() {
-            var aggregation, metric, as, scopes, functions, groups = this.parseQuery();
-            if (aggregation) {
-              this.target.aggregation = aggregation;
-              console.log('Aggr seg: ' + this.aggregationSegment.value + '\n');
-              this.aggregationSegment = this.uiSegmentSrv.newSegment(aggregation);
-              //this.panelCtrl.refresh();
-            }
-
-            if (metric) {
-              this.target.metric = metric;
-              //this.panelCtrl.refresh();
-              console.log('Metric seg: ' + this.metricSegment.value + '\n');
-              this.metricSegment = this.uiSegmentSrv.newSegment({
-                value: metric,
-                fake: true
-              });
-            }
-            
-            if (as) {
-              this.target.as = as;
-              //this.panelCtrl.refresh();
-              console.log('AS seg: ' + this.asSegment.value + '\n');
-              this.asSegment = this.uiSegmentSrv.newSegment(as);
-            }
-            this.targetChanged();
-          }
-        }, {
           key: 'parseQuery',
           value: function parseQuery() {
             
-            // sample query
+            // sample queries
             // derivative(count_not_null(avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count()))
             // derivative(abs(undefined:undefined{*}))
             console.log("Inside parseQuery: " + this.target.query + "\n");
@@ -215,25 +186,24 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
               if (!component.includes(':') && !metricCollected) {
                 functions.push(component);
               } else {
-                // here its could have a metric, a scope
-                // example: avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count
-                // and it should be the last component
+                /*
+                here its could have a metric, a scope
+                example: avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count
+                and it should be the last component
+                */
                 var aggrIndex = component.indexOf(':');
                 aggregation = component.slice(0, aggrIndex);
-                console.log('Aggregation: ' + aggregation + '\n');
 
                 // process metric
                 var withNoAggr = component.slice(aggrIndex + 1);
                 var metricEnd = withNoAggr.indexOf('{');
                 metric = withNoAggr.slice(0, metricEnd);
-                console.log('Metric: ' + metric + '\n');
                 metricCollected = true;
 
                 // process scopes
                 var withNoMetric = withNoAggr.slice(metricEnd + 1);
                 var scopeEnd = withNoMetric.indexOf('}');
                 scopes = withNoMetric.slice(0, scopeEnd).trim().split(',');
-                console.log('Scopes: ' + scopes + '\n');
 
                 // process groups
                 // example: by {name,team}.as_count
@@ -243,18 +213,55 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                   // there are groups
                   var groupEnd = withNoScopes.indexOf('}');
                   groups = withNoScopes.slice(groupStart + 1, groupEnd);
-                  console.log('Groups: ' + groups + '\n');
                 } 
 
                 // process as
                 var asStart = withNoScopes.indexOf('.');
                 if (asStart !== -1) {
                   as = withNoScopes.slice(asStart + 1);
-                  console.log('As: ' + as + '\n');
-                }  
+                }
+                
+                // reconstruct segments
+                if (aggregation) {
+                  this.target.aggregation = aggregation;
+                  this.aggregationSegment = this.uiSegmentSrv.newSegment(aggregation);
+                }
+
+                if (metric) {
+                  this.target.metric = metric;
+                  this.metricSegment = this.uiSegmentSrv.newSegment({
+                    value: metric,
+                    fake: true
+                  });
+                }
+                
+                if (as) {
+                  this.target.as = as;
+                  this.asSegment = this.uiSegmentSrv.newSegment(as);
+                }
+
+                // sammple query with tags/scopes: 
+                // avg:aws.autoscaling.group_in_service_instances{availability-zone:undef,engineversion:5.7.22}.as_count()
+                if (scopes.length > 0 && scopes[0] !== '') {
+                  this.target.tags = [];
+                  for (var i = 0; i < scopes.length; ++i) {
+                    if (scopes[i] !== '*') {
+                      this.target.tags.push(scopes[i]);
+                    }
+                  }
+
+                  this.tagSegments = _.map(this.target.tags, this.uiSegmentSrv.newSegment);
+                  this.fixTagSegments();
+                }
+
+                this.targetChanged();
+                
+                
+                
               }
             }
-            return aggregation, metric, as, scopes, functions, groups;
+            
+
           }
         }, {
           key: 'getMetrics',
