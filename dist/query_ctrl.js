@@ -203,7 +203,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 functions.push({
                   name: component,
                   defaultParams: []
-                });s
+                });
               } else {
                 /*
                 here it could have a metric, a scope
