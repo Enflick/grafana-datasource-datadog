@@ -206,7 +206,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 });s
               } else {
                 /*
-                here its could have a metric, a scope
+                here it could have a metric, a scope
                 example: avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count()
                 and it should be the last component
                 */
