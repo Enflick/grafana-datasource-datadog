@@ -203,7 +203,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 functions.push({
                   name: component,
                   defaultParams: []
-                });s
+                });
               } else {
                 /*
                 here it could have a metric, a scope
@@ -300,7 +300,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
         }, {
           key: 'getMetrics',
           value: function getMetrics() {
-            return this.datasource.metricFindQuery().then(this.uiSegmentSrv.transformToSegments(true));
+            return this.datasource.initMetricsFetching(this.metricKeyword).then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
           key: 'getAggregations',

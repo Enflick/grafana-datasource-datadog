@@ -112,6 +112,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           this.backendSrv = backendSrv;
           this.templateSrv = templateSrv;
           this._cached_metrics = false;
+          this._cached_metricKeyword = '';
         }
 
         // Function to check Datasource health
@@ -152,6 +153,13 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             });
           }
         }, {
+          key: 'getFrom',
+          value: function getFrom() {
+            var d = new Date();
+            d.setDate(d.getDate() - 1);
+            return Math.floor(d.getTime() / 1000);
+          }
+        }, {
           key: 'metricFindQuery',
           value: function metricFindQuery(query) {
             var _this = this;
@@ -160,6 +168,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
               return this.tagFindQuery();
             }
 
+
             if (this._cached_metrics) {
               return Promise.resolve(this._cached_metrics);
             }
@@ -167,12 +176,8 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             if (this.fetching) {
               return this.fetching;
             }
-
-            var d = new Date();
-            d.setDate(d.getDate() - 1);
-            var from = Math.floor(d.getTime() / 1000);
-
-            this.fetching = this.getMetrics(from).then(function (metrics) {
+            
+            this.fetching = this.getMetrics().then(function (metrics) {
               _this._cached_metrics = _.map(metrics, function (metric) {
                 return {
                   text: metric,
@@ -184,6 +189,42 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             });
 
             return this.fetching;
+          }
+        }, {
+          key: 'initMetricsFetching',
+          value: function initMetricsFetching(keyword) {
+            var _this = this;
+            
+            if (keyword === this._cached_metricKeyword) {
+              if (this._cached_metrics) {
+                return Promise.resolve(this._cached_metrics);
+              }
+  
+              if (this.fetching) {
+                return this.fetching;
+              }  
+            }
+
+            // if no keyword provided, fetch the first 100 metrics directly from Datadog
+            if (!keyword || keyword.length < 1) {
+              this.fetching = this.getMetrics().then((metrics) => this.resolveMetrics(metrics));
+            } else {
+              _this._cached_metricKeyword = keyword;
+              this.fetching = this.searchMetrics(keyword).then((metrics) => this.resolveMetrics(metrics));
+            }
+            return this.fetching;
+          }
+        }, {
+          key: 'resolveMetrics',
+          value: function resolveMetrics(metrics) {
+            var _this = this;
+            _this._cached_metrics = _.map(metrics, function (metric) {
+              return {
+                text: metric,
+                value: metric
+              }
+            });
+            return _this._cached_metrics;
           }
         }, {
           key: 'getTagKeys',
@@ -323,19 +364,30 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           }
         }, {
           key: 'getMetrics',
-          value: function getMetrics(timeFrom) {
+          value: function getMetrics() {
             var params = {};
-
-            if (timeFrom) {
-              params.from = timeFrom;
-            }
-
+            params.from = this.getFrom();
+    
             return this.invokeDataDogApiRequest('/metrics', params).then(function (result) {
               if (result.metrics) {
-                return result.metrics;
+                return result.metrics.slice(0, 100);
               } else {
                 return [];
               }
+            });
+          }
+        }, {
+          key: 'searchMetrics',
+          value: function searchMetrics(keyword) {
+            if (keyword.length < 1 || !keyword) {
+              return [];
+            }
+
+            var params = {}
+            params.q = "metrics:" + keyword;
+
+            return this.invokeDataDogApiRequest('/search', params).then(function (response) {
+              return response.results.metrics ? response.results.metrics.slice(0, 100) : [];
             });
           }
         }, {
