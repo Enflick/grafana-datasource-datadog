@@ -176,9 +176,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             if (this.fetching) {
               return this.fetching;
             }
-
-   
-
+            
             this.fetching = this.getMetrics().then(function (metrics) {
               _this._cached_metrics = _.map(metrics, function (metric) {
                 return {
