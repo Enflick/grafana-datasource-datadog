@@ -175,9 +175,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
           key: 'parseQuery',
           value: function parseQuery() {
             
-            // sample queries
-            // derivative(count_not_null(avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count()))
-            // derivative(abs(undefined:undefined{*}))
             var stack = [];
             var query = this.target.query;
             var tmpString = [];
@@ -206,7 +203,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 functions.push({
                   name: component,
                   defaultParams: []
-                });
+                });s
               } else {
                 /*
                 here its could have a metric, a scope
@@ -230,7 +227,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 scopes = withNoMetric.slice(0, scopeEnd).trim().split(',');
 
                 // process groups
-                // example: by {name,team}.as_count
                 var withNoScopes = withNoMetric.slice(scopeEnd + 1);
                 var groupStart = withNoScopes.indexOf('{');
                 if (groupStart !== -1) {
@@ -272,7 +268,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 }
 
                 // sammple query with tags/scopes: 
-                // avg:aws.autoscaling.group_in_service_instances{availability-zone:undef,engineversion:5.7.22}.as_count()
                 if (scopes.length > 0 && scopes[0] !== '') {
                   this.target.tags = [];
                   for (var scope of scopes) {
@@ -285,8 +280,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 }
 
                 // sample query with functions
-                // derivative(count_not_null(avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count()))
-
                 if (functions.length > 0) {
                   this.target.functions = [];
                   this.functions = [];
