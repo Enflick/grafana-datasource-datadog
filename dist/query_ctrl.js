@@ -122,13 +122,37 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
           value: function toggleEditorMode() {
             this.target.rawQuery = !this.target.rawQuery;
             if (this.target.rawQuery) {
-              console.log('Printing target in toggleEditorMode: \n')
-              console.log(this.target);
               this.target.query = queryBuilder.buildQuery(this.target);
             } else {
-              this.parseQuery();
+              if (this.target.query !== 'undefined:undefined{*}') {
+                this.parseQuery();
+              } else {
+                this.refreshOptions();
+              }
             }
               
+          }
+        }, {
+          key: 'refreshOptions',
+          value: function refreshOptions() {
+            delete this.target.metric;
+            delete this.target.aggregation;
+            delete this.target.as;
+            this.asSegment = this.uiSegmentSrv.newSegment({
+              value: 'Select As',
+              fake: true,
+              custom: false
+            });
+
+            this.aggregationSegment = this.uiSegmentSrv.newSegment({
+              value: 'Select Aggregation',
+              fake: true,
+              custom: false
+            });
+
+            this.metricSegment = this.uiSegmentSrv.newSelectMetric();
+
+            this.targetChanged();
           }
         }, {
           key: 'getCollapsedText',
@@ -154,9 +178,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             // sample queries
             // derivative(count_not_null(avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count()))
             // derivative(abs(undefined:undefined{*}))
-            console.log("Inside parseQuery: " + this.target.query + "\n");
-            console.log('Printing target: \n');
-            console.log(this.target);
             var stack = [];
             var query = this.target.query;
             var tmpString = [];
@@ -174,8 +195,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
               }
             } 
 
-            console.log(stack)
-
             var functions = [];
             var scopes = [];
             var metricCollected = false;
@@ -184,20 +203,25 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             for (var component of stack) {
               // check if it is a function
               if (!component.includes(':') && !metricCollected) {
-                functions.push(component);
+                functions.push({
+                  name: component,
+                  defaultParams: []
+                });
               } else {
                 /*
                 here its could have a metric, a scope
-                example: avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count
+                example: avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count()
                 and it should be the last component
                 */
                 var aggrIndex = component.indexOf(':');
                 aggregation = component.slice(0, aggrIndex);
+                aggregation = aggregation == 'undefined' ? null : aggregation;
 
                 // process metric
                 var withNoAggr = component.slice(aggrIndex + 1);
                 var metricEnd = withNoAggr.indexOf('{');
                 metric = withNoAggr.slice(0, metricEnd);
+                metric = metric == 'undefined' ? null : metric;
                 metricCollected = true;
 
                 // process scopes
@@ -219,13 +243,13 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                 var asStart = withNoScopes.indexOf('.');
                 if (asStart !== -1) {
                   as = withNoScopes.slice(asStart + 1);
-                }
+                } 
                 
                 // reconstruct segments
                 if (aggregation) {
                   this.target.aggregation = aggregation;
                   this.aggregationSegment = this.uiSegmentSrv.newSegment(aggregation);
-                }
+                } 
 
                 if (metric) {
                   this.target.metric = metric;
@@ -233,35 +257,52 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
                     value: metric,
                     fake: true
                   });
-                }
+                } 
                 
                 if (as) {
                   this.target.as = as;
                   this.asSegment = this.uiSegmentSrv.newSegment(as);
+                } else {
+                  delete this.target.as;
+                  this.asSegment = this.uiSegmentSrv.newSegment({
+                    value: 'Select As',
+                    fake: true,
+                    custom: false
+                  });
                 }
 
                 // sammple query with tags/scopes: 
                 // avg:aws.autoscaling.group_in_service_instances{availability-zone:undef,engineversion:5.7.22}.as_count()
                 if (scopes.length > 0 && scopes[0] !== '') {
                   this.target.tags = [];
-                  for (var i = 0; i < scopes.length; ++i) {
-                    if (scopes[i] !== '*') {
-                      this.target.tags.push(scopes[i]);
+                  for (var scope of scopes) {
+                    if (scope !== '*') {
+                      this.target.tags.push(scope);
                     }
                   }
-
                   this.tagSegments = _.map(this.target.tags, this.uiSegmentSrv.newSegment);
                   this.fixTagSegments();
                 }
 
+                // sample query with functions
+                // derivative(count_not_null(avg:aws.autoscaling.group_in_service_instances{*} by {name,team}.as_count()))
+
+                if (functions.length > 0) {
+                  this.target.functions = [];
+                  this.functions = [];
+                  for (var func of functions) {
+                    this.addFunction(func);
+                  }
+                }
+
+                if (groups && groups.length > 0) {
+                  this.target.groups = groups;
+                } else {
+                  delete this.target.groups;
+                }
                 this.targetChanged();
-                
-                
-                
               }
             }
-            
-
           }
         }, {
           key: 'getMetrics',
