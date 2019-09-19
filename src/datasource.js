@@ -112,6 +112,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           this.backendSrv = backendSrv;
           this.templateSrv = templateSrv;
           this._cached_metrics = false;
+          this._cached_metricKeyword = '';
         }
 
         // Function to check Datasource health
@@ -152,6 +153,13 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             });
           }
         }, {
+          key: 'getFrom',
+          value: function getFrom() {
+            var d = new Date();
+            d.setDate(d.getDate() - 1);
+            return Math.floor(d.getTime() / 1000);
+          }
+        }, {
           key: 'metricFindQuery',
           value: function metricFindQuery(query) {
             var _this = this;
@@ -168,9 +176,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
               return this.fetching;
             }
 
-            var d = new Date();
-            d.setDate(d.getDate() - 1);
-            var from = Math.floor(d.getTime() / 1000);
+            var from = this.getFrom();
 
             this.fetching = this.getMetrics(from).then(function (metrics) {
               _this._cached_metrics = _.map(metrics, function (metric) {
@@ -183,6 +189,33 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
               return _this._cached_metrics;
             });
 
+            return this.fetching;
+          }
+        }, {
+          key: 'initMetricsFetching',
+          value: function initMetricsFetching(keyword) {
+            var _this = this;
+            
+            if (keyword === this._cached_metricKeyword) {
+              if (this._cached_metrics) {
+                return Promise.resolve(this._cached_metrics);
+              }
+  
+              if (this.fetching) {
+                return this.fetching;
+              }  
+            }
+            
+            this.fetching = this.searchMetrics(keyword).then(function (metrics) {
+              _this._cached_metricKeyword = keyword;
+              _this._cached_metrics = _.map(metrics, function (metric) {
+                return {
+                  text: metric,
+                  value: metric
+                }
+              });
+              return _this._cached_metrics;
+            });
             return this.fetching;
           }
         }, {
@@ -336,6 +369,20 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
               } else {
                 return [];
               }
+            });
+          }
+        }, {
+          key: 'searchMetrics',
+          value: function searchMetrics(keyword) {
+            if (keyword.length < 1 || !keyword) {
+              return [];
+            }
+
+            var params = {}
+            params.q = "metrics:" + keyword;
+
+            return this.invokeDataDogApiRequest('/search', params).then(function (response) {
+              return response.results.metrics ? response.results.metrics.slice(0, 100) : [];
             });
           }
         }, {
