@@ -358,6 +358,7 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             // when the prefixes exist, metrics should have been already cached.
             // therefore could directly start filtering
             this.metricPrefix = this.metricPrefixSegment.value;
+            this.panelCtrl.refresh();
           } 
         }, {
           key: 'asChanged',
