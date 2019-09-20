@@ -112,7 +112,9 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           this.backendSrv = backendSrv;
           this.templateSrv = templateSrv;
           this._cached_metrics = false;
-          this._cached_metricKeyword = '';
+          this._cached_relatedMetrics = false;
+          this._cached_metric_prefixes = false;
+          this._cached_metricPrefix = '';
         }
 
         // Function to check Datasource health
@@ -168,7 +170,6 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
               return this.tagFindQuery();
             }
 
-
             if (this._cached_metrics) {
               return Promise.resolve(this._cached_metrics);
             }
@@ -178,7 +179,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             }
             
             this.fetching = this.getMetrics().then(function (metrics) {
-              _this._cached_metrics = _.map(metrics, function (metric) {
+              this._cached_metrics = _this._cached_metrics = _.map(metrics, function (metric) {
                 return {
                   text: metric,
                   value: metric
@@ -191,40 +192,69 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             return this.fetching;
           }
         }, {
+          key: 'prefixFindQuery',
+          value: function prefixFindQuery() {
+            var _this = this;
+
+            if (this._cached_metric_prefixes) {
+              return Promise.resolve(this._cached_metric_prefixes);
+            }
+
+            if (this.fetching_prefixes) {
+              return this.fetching_prefixes;
+            }
+
+
+            this.fetching_prefixes = this.getMetricPrefixes().then((list) => {
+              _this._cached_metrics = _.map(list[0], metric => {
+                return {
+                  text: metric,
+                  value: metric
+                };
+              });
+              
+              _this._cached_metric_prefixes = _.map(list[1], prefix => {
+                return {
+                  text: prefix,
+                  value: prefix
+                };
+              });
+              return _this._cached_metric_prefixes;
+            });
+            return this.fetching_prefixes;
+          }
+        }, {
           key: 'initMetricsFetching',
           value: function initMetricsFetching(keyword) {
             var _this = this;
             
-            if (keyword === this._cached_metricKeyword) {
-              if (this._cached_metrics) {
-                return Promise.resolve(this._cached_metrics);
+            if (keyword === this._cached_metricPrefix) {
+              if (this._cached_relatedMetrics) {
+                return Promise.resolve(this._cached_relatedMetrics);
               }
   
-              if (this.fetching) {
-                return this.fetching;
+              if (this.fetching_relatedMetrics) {
+                return this.fetching_relatedMetrics;
               }  
             }
 
-            // if no keyword provided, fetch the first 100 metrics directly from Datadog
-            if (!keyword || keyword.length < 1) {
-              this.fetching = this.getMetrics().then((metrics) => this.resolveMetrics(metrics));
-            } else {
-              _this._cached_metricKeyword = keyword;
-              this.fetching = this.searchMetrics(keyword).then((metrics) => this.resolveMetrics(metrics));
-            }
-            return this.fetching;
+            _this._cached_metricPrefix = keyword;
+            this.fetching_relatedMetrics = this.searchMetrics(keyword).then((metrics) => this.resolveMetrics(metrics));
+            
+            return this.fetching_relatedMetrics;
           }
         }, {
           key: 'resolveMetrics',
           value: function resolveMetrics(metrics) {
             var _this = this;
-            _this._cached_metrics = _.map(metrics, function (metric) {
+
+            _this._cached_relatedMetrics = _.map(metrics, function (metric) {
               return {
                 text: metric,
                 value: metric
               }
             });
-            return _this._cached_metrics;
+            return _this._cached_relatedMetrics;
           }
         }, {
           key: 'getTagKeys',
@@ -370,11 +400,61 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
     
             return this.invokeDataDogApiRequest('/metrics', params).then(function (result) {
               if (result.metrics) {
-                return result.metrics.slice(0, 100);
+                return result.metrics;
               } else {
                 return [];
               }
             });
+          }
+        }, {
+          key: 'getMetricPrefixes',
+          value: function getMetricPrefixes() {
+            var params = {};
+            params.from = this.getFrom();
+
+            return this.invokeDataDogApiRequest('/metrics', params).then(response => {
+              if (response.metrics) {
+                var prefixSet = new Set();
+                for (var metric of response.metrics) {
+                  var prefix = metric.split('.')[0];
+                  prefixSet.add(prefix);
+                }
+                var prefixes = [];
+                for (var prefix of prefixSet) {
+                  prefixes.push(prefix);
+                }
+                return [response.metrics, prefixes];
+                
+              } else {
+                return [[], []];
+              }
+            });
+          }
+        }, {
+          key: 'filterMetricsByPrefix',
+          value: function filterMetricsByPrefix(keyword) {
+            var relatedMetrics = [];
+            if (this._cached_metrics) {
+              for (var metric of this._cached_metrics) {
+                if (metric.text.split('.')[0] === keyword) {
+                  relatedMetrics.push(metric.text);
+                }
+              }
+            } else {
+              return this.invokeDataDogApiRequest('/metrics', params).then(response => {
+                if (response.metrics) {
+                  for (var metric of response.metrics) {
+                    if (metric.split('.')[0] === keyword) {
+                      relatedMetrics.push(metric);
+                    }
+                  }
+                  return relatedMetrics;
+                } else {
+                  return [];
+                }
+              });
+            }
+            return Promise.resolve(relatedMetrics);
           }
         }, {
           key: 'searchMetrics',
@@ -382,13 +462,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             if (keyword.length < 1 || !keyword) {
               return [];
             }
-
-            var params = {}
-            params.q = "metrics:" + keyword;
-
-            return this.invokeDataDogApiRequest('/search', params).then(function (response) {
-              return response.results.metrics ? response.results.metrics.slice(0, 100) : [];
-            });
+            return this.filterMetricsByPrefix(keyword);
           }
         }, {
           key: 'getTagsHosts',

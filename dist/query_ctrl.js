@@ -92,6 +92,15 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             _this.metricSegment = new uiSegmentSrv.newSelectMetric();
           }
 
+          if (_this.metricPrefix) {
+            _this.metricPrefixSegment = new uiSegmentSrv.newSegment(_this.metricPrefix);
+          } else {
+            _this.metricPrefixSegment = new uiSegmentSrv.newSegment({
+              fake: true,
+              value: 'select metric prefix'
+            });
+          }
+
           _this.target.tags = _this.target.tags || [];
           _this.tagSegments = _this.target.tags.map(uiSegmentSrv.newSegment);
           _this.fixTagSegments();
@@ -300,7 +309,12 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
         }, {
           key: 'getMetrics',
           value: function getMetrics() {
-            return this.datasource.initMetricsFetching(this.metricKeyword).then(this.uiSegmentSrv.transformToSegments(true));
+            return this.datasource.initMetricsFetching(this.metricPrefix).then(this.uiSegmentSrv.transformToSegments(true));
+          }
+        }, {
+          key: 'getMetricPrefixes',
+          value: function getMetricPrefixes() {
+            return this.datasource.prefixFindQuery().then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
           key: 'getAggregations',
@@ -338,6 +352,14 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             this.target.metric = this.metricSegment.value;
             this.panelCtrl.refresh();
           }
+        }, {
+          key: 'prefixChanged',
+          value: function prefixChanged() {
+            // when the prefixes exist, metrics should have been already cached.
+            // therefore could directly start filtering
+            this.metricPrefix = this.metricPrefixSegment.value;
+            console.log('Prefix changed to : ' + this.metricPrefix + '\n');
+          } 
         }, {
           key: 'asChanged',
           value: function asChanged() {
