@@ -309,12 +309,12 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
         }, {
           key: 'getMetrics',
           value: function getMetrics() {
-            return this.datasource.initMetricsFetching(this.metricPrefix).then(this.uiSegmentSrv.transformToSegments(true));
+            return this.datasource.fetchMetricsFromPrefix(this.metricPrefix).then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
           key: 'getMetricPrefixes',
           value: function getMetricPrefixes() {
-            return this.datasource.prefixFindQuery().then(this.uiSegmentSrv.transformToSegments(true));
+            return this.datasource.fetchMetrics().then(this.uiSegmentSrv.transformToSegments(true));
           }
         }, {
           key: 'getAggregations',
@@ -358,7 +358,6 @@ System.register(['lodash', './dfunc', 'app/plugins/sdk', './func_editor', './add
             // when the prefixes exist, metrics should have been already cached.
             // therefore could directly start filtering
             this.metricPrefix = this.metricPrefixSegment.value;
-            console.log('Prefix changed to : ' + this.metricPrefix + '\n');
           } 
         }, {
           key: 'asChanged',

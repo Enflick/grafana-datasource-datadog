@@ -111,10 +111,9 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
           this.supportMetrics = true;
           this.backendSrv = backendSrv;
           this.templateSrv = templateSrv;
-          this._cached_metrics = false;
-          this._cached_relatedMetrics = false;
-          this._cached_metric_prefixes = false;
-          this._cached_metricPrefix = '';
+          this._cached_metrics = {};
+          this._cached_set_prefixes = new Set();
+          this._cached_list_prefixes = [];
         }
 
         // Function to check Datasource health
@@ -162,42 +161,12 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             return Math.floor(d.getTime() / 1000);
           }
         }, {
-          key: 'metricFindQuery',
-          value: function metricFindQuery(query) {
+          key: 'fetchMetrics',
+          value: function fetchMetrics() {
             var _this = this;
 
-            if (query === 'tag') {
-              return this.tagFindQuery();
-            }
-
-            if (this._cached_metrics) {
-              return Promise.resolve(this._cached_metrics);
-            }
-
-            if (this.fetching) {
-              return this.fetching;
-            }
-            
-            this.fetching = this.getMetrics().then(function (metrics) {
-              this._cached_metrics = _this._cached_metrics = _.map(metrics, function (metric) {
-                return {
-                  text: metric,
-                  value: metric
-                };
-              });
-
-              return _this._cached_metrics;
-            });
-
-            return this.fetching;
-          }
-        }, {
-          key: 'prefixFindQuery',
-          value: function prefixFindQuery() {
-            var _this = this;
-
-            if (this._cached_metric_prefixes) {
-              return Promise.resolve(this._cached_metric_prefixes);
+            if (this._cached_list_prefixes && this._cached_list_prefixes.length > 0) {
+              return Promise.resolve(this._cached_list_prefixes);
             }
 
             if (this.fetching_prefixes) {
@@ -205,43 +174,52 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
             }
 
 
-            this.fetching_prefixes = this.getMetricPrefixes().then((list) => {
-              _this._cached_metrics = _.map(list[0], metric => {
-                return {
+            this.fetching_prefixes = this.getMetrics().then((metrics) => {
+              for (var metric of metrics) {
+                var prefix = String(metric.split('.')[0]);
+                if (!this._cached_set_prefixes.has(prefix)) {
+                  this._cached_set_prefixes.add(prefix);
+                  this._cached_list_prefixes.push({
+                    text: prefix,
+                    value: prefix
+                  });
+                }
+                
+                if (!this._cached_metrics[prefix]) {
+                  this._cached_metrics[prefix] = [];
+                }
+                this._cached_metrics[prefix].push({
                   text: metric,
                   value: metric
-                };
-              });
-              
-              _this._cached_metric_prefixes = _.map(list[1], prefix => {
-                return {
-                  text: prefix,
-                  value: prefix
-                };
-              });
-              return _this._cached_metric_prefixes;
+                });
+              }
+              _this.cached_metrics = this._cached_metrics;
+              _this._cached_set_prefixes = this._cached_set_prefixes;
+              _this._cached_list_prefixes = this._cached_list_prefixes;
+
+              return _this._cached_list_prefixes;
             });
             return this.fetching_prefixes;
           }
         }, {
-          key: 'initMetricsFetching',
-          value: function initMetricsFetching(keyword) {
-            var _this = this;
-            
-            if (keyword === this._cached_metricPrefix) {
-              if (this._cached_relatedMetrics) {
-                return Promise.resolve(this._cached_relatedMetrics);
-              }
-  
-              if (this.fetching_relatedMetrics) {
-                return this.fetching_relatedMetrics;
-              }  
+          key: 'fetchMetricsFromPrefix',
+          value: function fetchMetricsFromPrefix(prefix) {
+            if (!prefix || prefix.length === 0) {
+              return Promise.resolve([]);
             }
-
-            _this._cached_metricPrefix = keyword;
-            this.fetching_relatedMetrics = this.searchMetrics(keyword).then((metrics) => this.resolveMetrics(metrics));
-            
-            return this.fetching_relatedMetrics;
+            if (this._cached_metrics) {
+              if (this._cached_metrics[prefix].length > 0) {
+                return Promise.resolve(this._cached_metrics[prefix]);
+              } else {
+                return Promise.resolve([]);
+              }
+            }
+            this.prefixFindQuery();
+            if (this._cached_metrics[prefix]) {
+              return this.__cached_metrics[prefix].then((metrics) => this.resolveMetrics(metrics));
+            } else {
+              return Promise.resolve([]);
+            }
           }
         }, {
           key: 'resolveMetrics',
@@ -405,64 +383,6 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
                 return [];
               }
             });
-          }
-        }, {
-          key: 'getMetricPrefixes',
-          value: function getMetricPrefixes() {
-            var params = {};
-            params.from = this.getFrom();
-
-            return this.invokeDataDogApiRequest('/metrics', params).then(response => {
-              if (response.metrics) {
-                var prefixSet = new Set();
-                for (var metric of response.metrics) {
-                  var prefix = metric.split('.')[0];
-                  prefixSet.add(prefix);
-                }
-                var prefixes = [];
-                for (var prefix of prefixSet) {
-                  prefixes.push(prefix);
-                }
-                return [response.metrics, prefixes];
-                
-              } else {
-                return [[], []];
-              }
-            });
-          }
-        }, {
-          key: 'filterMetricsByPrefix',
-          value: function filterMetricsByPrefix(keyword) {
-            var relatedMetrics = [];
-            if (this._cached_metrics) {
-              for (var metric of this._cached_metrics) {
-                if (metric.text.split('.')[0] === keyword) {
-                  relatedMetrics.push(metric.text);
-                }
-              }
-            } else {
-              return this.invokeDataDogApiRequest('/metrics', params).then(response => {
-                if (response.metrics) {
-                  for (var metric of response.metrics) {
-                    if (metric.split('.')[0] === keyword) {
-                      relatedMetrics.push(metric);
-                    }
-                  }
-                  return relatedMetrics;
-                } else {
-                  return [];
-                }
-              });
-            }
-            return Promise.resolve(relatedMetrics);
-          }
-        }, {
-          key: 'searchMetrics',
-          value: function searchMetrics(keyword) {
-            if (keyword.length < 1 || !keyword) {
-              return [];
-            }
-            return this.filterMetricsByPrefix(keyword);
           }
         }, {
           key: 'getTagsHosts',
