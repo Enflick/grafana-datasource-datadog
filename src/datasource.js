@@ -214,7 +214,7 @@ System.register(['lodash', './showdown.min.js', './query_builder'], function (_e
                 return Promise.resolve([]);
               }
             }
-            this.prefixFindQuery();
+            this.fetchMetrics();
             if (this._cached_metrics[prefix]) {
               return this.__cached_metrics[prefix].then((metrics) => this.resolveMetrics(metrics));
             } else {
